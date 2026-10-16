@@ -102,7 +102,7 @@ function renderMe() {
     const b = el('button', 'btn', 'Google로 로그인'); b.onclick = login; meBox.append(b);
   }
 }
-function login() { signInWithPopup(auth, new GoogleAuthProvider()).catch(e => { if (e.code !== 'auth/popup-closed-by-user') alert('로그인하지 못했어요. 팝업 차단을 풀고 다시 시도해 주세요.'); }); }
+function login() { signInWithPopup(auth, new GoogleAuthProvider()).catch(e => { if (e.code !== 'auth/popup-closed-by-user') alert('로그인 실패\n오류 코드: ' + e.code + '\n' + e.message); }); }
 function reset() { unsubs.forEach(f => f()); unsubs = []; app.textContent = ''; }
 document.getElementById('home').onclick = () => { location.hash = ''; };
 function route() { const id = location.hash.slice(1); id ? roomView(id) : homeView(); }
