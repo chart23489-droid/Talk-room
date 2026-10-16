@@ -1,0 +1,204 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>토크룸</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Jua&family=Noto+Sans+KR:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#f1f0fb;--card:#fff;--text:#1d1b2e;--sub:#6e6b85;--line:#dedcf0;--acc:#4338ca;--accT:#fff;
+--c0:#fff2a8;--c1:#ffc9d4;--c2:#bfe6ff;--c3:#c8f2c2;--c4:#e0cffb;--cT:#1d1b2e}
+@media (prefers-color-scheme:dark){:root{--bg:#14131f;--card:#201e30;--text:#eeecfa;--sub:#9d9ab8;--line:#34314a;--acc:#a5a0ff;--accT:#14131f;
+--c0:#4d4619;--c1:#552a39;--c2:#1c3d56;--c3:#24472a;--c4:#41306a;--cT:#f3f1fb}}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--text);font-family:"Noto Sans KR",system-ui,sans-serif;line-height:1.55}
+button{font:inherit;cursor:pointer;border:0}
+button:focus-visible,input:focus-visible,textarea:focus-visible{outline:3px solid var(--acc);outline-offset:2px}
+header{position:sticky;top:0;z-index:5;display:flex;align-items:center;justify-content:space-between;gap:8px;padding:10px 16px;background:var(--bg);border-bottom:1px solid var(--line)}
+.logo{font-family:Jua,sans-serif;font-size:26px;color:var(--acc);background:none;padding:0}
+.me{display:flex;align-items:center;gap:8px;font-size:14px}
+.me img{width:30px;height:30px;border-radius:50%}
+.btn{background:var(--acc);color:var(--accT);padding:10px 16px;border-radius:999px;font-weight:700}
+.btn:disabled{opacity:.5}
+.link{background:none;color:var(--sub);padding:4px 6px;font-size:13px}
+main{max-width:1000px;margin:0 auto;padding:20px 16px 60px}
+h1{font-family:Jua,sans-serif;font-weight:400;font-size:clamp(28px,6vw,40px);margin:8px 0 6px;line-height:1.2}
+.sub{color:var(--sub);margin:0 0 20px}
+input,textarea{width:100%;font:inherit;color:var(--text);background:var(--card);border:2px solid var(--line);border-radius:14px;padding:12px 14px}
+textarea{min-height:90px;resize:vertical;margin-bottom:10px}
+.new{display:flex;gap:8px;margin-bottom:24px}
+.new input{flex:1}
+.rooms{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:14px}
+.room{text-align:left;color:var(--cT);border-radius:20px;padding:20px;min-height:130px;display:flex;flex-direction:column;justify-content:space-between}
+.room b{font-family:Jua,sans-serif;font-weight:400;font-size:22px;line-height:1.3;word-break:break-word}
+.room small{opacity:.7}
+.compose{background:var(--card);border:2px solid var(--line);border-radius:20px;padding:14px;margin-bottom:22px}
+.dots{display:flex;gap:8px;align-items:center;margin-bottom:10px}
+.dot{width:30px;height:30px;border-radius:50%;border:3px solid transparent;box-shadow:0 0 0 1px var(--line)}
+.dot.on{border-color:var(--text)}
+.dots .btn{margin-left:auto}
+.wall{columns:220px;column-gap:14px}
+.note{break-inside:avoid;margin-bottom:14px;border-radius:18px;padding:16px;color:var(--cT)}
+.note p{margin:0 0 12px;white-space:pre-wrap;word-break:break-word}
+.meta{display:flex;align-items:center;gap:6px;font-size:13px}
+.meta img{width:22px;height:22px;border-radius:50%}
+.meta .who{flex:1;opacity:.75;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.like{background:rgba(255,255,255,.55);color:#1d1b2e;border-radius:999px;padding:4px 10px;font-size:13px}
+.like.on{background:#1d1b2e;color:#fff}
+@media (prefers-color-scheme:dark){.like{background:rgba(0,0,0,.3);color:#fff}.like.on{background:#fff;color:#1d1b2e}}
+.x{background:none;color:inherit;opacity:.6;padding:2px 6px}
+.empty,.hint{color:var(--sub);text-align:center;padding:30px 0}
+.hint{background:var(--card);border:2px dashed var(--line);border-radius:18px;margin-bottom:22px;padding:20px}
+.setup{max-width:520px;margin:60px auto;padding:20px}
+@media (prefers-reduced-motion:no-preference){.like,.btn,.room{transition:transform .15s}.room:hover{transform:translateY(-3px)}}
+</style>
+</head>
+<body>
+<header>
+  <button class="logo" id="home">토크룸</button>
+  <div class="me" id="me"></div>
+</header>
+<main id="app"></main>
+
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+import { getAuth, onAuthStateChanged, signInWithPopup, GoogleAuthProvider, signOut } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+import { getFirestore, collection, doc, addDoc, deleteDoc, updateDoc, getDocs, onSnapshot, query, orderBy, serverTimestamp, arrayUnion, arrayRemove } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+
+// ▼▼▼ Firebase 콘솔의 firebaseConfig 값을 여기에 붙여넣으세요 ▼▼▼
+const firebaseConfig = {
+  apiKey: "",
+  authDomain: "",
+  projectId: "",
+  storageBucket: "",
+  messagingSenderId: "",
+  appId: ""
+};
+// ▲▲▲ ----------------------------------------------------- ▲▲▲
+
+const app = document.getElementById('app'), meBox = document.getElementById('me');
+const el = (t, c, x) => { const e = document.createElement(t); if (c) e.className = c; if (x != null) e.textContent = x; return e; };
+let unsubs = [], user = null, color = 0, db, auth;
+
+if (!firebaseConfig.apiKey) {
+  const s = el('div', 'setup');
+  s.append(el('h1', null, '설정이 필요해요'), el('p', 'sub', 'index.html 안의 firebaseConfig에 Firebase 콘솔의 값을 붙여넣어 주세요.'));
+  app.append(s);
+} else {
+  const fb = initializeApp(firebaseConfig);
+  auth = getAuth(fb); db = getFirestore(fb);
+  onAuthStateChanged(auth, u => { user = u; renderMe(); route(); });
+  window.addEventListener('hashchange', route);
+}
+
+function renderMe() {
+  meBox.textContent = '';
+  if (user) {
+    if (user.photoURL) { const i = el('img'); i.src = user.photoURL; i.alt = ''; i.referrerPolicy = 'no-referrer'; meBox.append(i); }
+    const o = el('button', 'link', '로그아웃'); o.onclick = () => signOut(auth); meBox.append(o);
+  } else {
+    const b = el('button', 'btn', 'Google로 로그인'); b.onclick = login; meBox.append(b);
+  }
+}
+function login() { signInWithPopup(auth, new GoogleAuthProvider()).catch(e => { if (e.code !== 'auth/popup-closed-by-user') alert('로그인하지 못했어요. 팝업 차단을 풀고 다시 시도해 주세요.'); }); }
+function reset() { unsubs.forEach(f => f()); unsubs = []; app.textContent = ''; }
+document.getElementById('home').onclick = () => { location.hash = ''; };
+function route() { const id = location.hash.slice(1); id ? roomView(id) : homeView(); }
+
+function homeView() {
+  reset(); document.title = '토크룸';
+  app.append(el('h1', null, '주제를 정하고, 같이 이야기해요'), el('p', 'sub', '방을 만들어 링크를 보내면 의견이 실시간으로 쌓여요.'));
+  if (user) {
+    const f = el('div', 'new'), t = el('input'); t.placeholder = '방 주제 (예: 올해 최고의 게임은?)'; t.maxLength = 60;
+    const b = el('button', 'btn', '방 만들기');
+    b.onclick = async () => {
+      const v = t.value.trim(); if (!v) return; b.disabled = true;
+      try { const r = await addDoc(collection(db, 'rooms'), { title: v, ownerId: user.uid, ownerName: user.displayName || '익명', createdAt: serverTimestamp() }); location.hash = '#' + r.id; }
+      catch (e) { b.disabled = false; alert('방을 만들지 못했어요. Firestore 보안 규칙을 확인해 주세요.'); }
+    };
+    f.append(t, b); app.append(f);
+  } else app.append(el('div', 'hint', '로그인하면 방을 만들고 의견을 남길 수 있어요. 구경은 로그인 없이도 가능해요.'));
+  const list = el('div', 'rooms'); app.append(list);
+  unsubs.push(onSnapshot(query(collection(db, 'rooms'), orderBy('createdAt', 'desc')), s => {
+    list.textContent = '';
+    if (s.empty) { list.style.display = 'block'; list.append(el('div', 'empty', '아직 방이 없어요. 첫 방을 만들어보세요.')); return; }
+    list.style.display = '';
+    s.docs.forEach((d, i) => {
+      const r = d.data(), b = el('button', 'room'); b.style.background = `var(--c${i % 5})`;
+      b.append(el('b', null, r.title), el('small', null, r.ownerName || ''));
+      b.onclick = () => { location.hash = '#' + d.id; }; list.append(b);
+    });
+  }, () => { list.textContent = '방 목록을 불러오지 못했어요.'; }));
+}
+
+function roomView(id) {
+  reset();
+  const back = el('button', 'link', '← 방 목록'); back.onclick = () => { location.hash = ''; };
+  const h = el('h1', null, ''), sub = el('p', 'sub', '');
+  app.append(back, h, sub);
+  let room = null;
+  const share = el('button', 'link', '링크 복사');
+  share.onclick = async () => { try { await navigator.clipboard.writeText(location.href); share.textContent = '복사했어요'; } catch { share.textContent = '주소창의 링크를 복사하세요'; } };
+  app.append(share);
+
+  if (user) {
+    const c = el('div', 'compose'), ta = el('textarea'); ta.placeholder = '의견을 남겨보세요'; ta.maxLength = 300;
+    const dots = el('div', 'dots');
+    for (let i = 0; i < 5; i++) {
+      const d = el('button', 'dot' + (i === color ? ' on' : '')); d.style.background = `var(--c${i})`; d.setAttribute('aria-label', '카드 색상 ' + (i + 1));
+      d.onclick = () => { color = i; [...dots.children].forEach((x, j) => { if (j < 5) x.classList.toggle('on', j === i); }); }; dots.append(d);
+    }
+    const send = el('button', 'btn', '올리기');
+    send.onclick = async () => {
+      const v = ta.value.trim(); if (!v) return; send.disabled = true;
+      try { await addDoc(collection(db, 'rooms', id, 'posts'), { text: v, color, uid: user.uid, name: user.displayName || '익명', photo: user.photoURL || '', likes: [], createdAt: serverTimestamp() }); ta.value = ''; }
+      catch (e) { alert('올리지 못했어요. 잠시 후 다시 시도해 주세요.'); }
+      send.disabled = false;
+    };
+    dots.append(send); c.append(ta, dots); app.append(c);
+  } else {
+    const hint = el('div', 'hint', '로그인하면 의견을 올리고 좋아요를 누를 수 있어요. '); const b = el('button', 'btn', 'Google로 로그인'); b.onclick = login; hint.append(el('br'), b); app.append(hint);
+  }
+  const wall = el('div', 'wall'); app.append(wall);
+
+  unsubs.push(onSnapshot(doc(db, 'rooms', id), s => {
+    if (!s.exists()) { h.textContent = '없는 방이에요'; sub.textContent = '삭제됐거나 주소가 잘못됐어요.'; return; }
+    room = s.data(); h.textContent = room.title; sub.textContent = '만든 사람 ' + (room.ownerName || '익명'); document.title = room.title + ' · 토크룸';
+    if (user && user.uid === room.ownerId && !document.getElementById('delroom')) {
+      const d = el('button', 'link', '방 삭제'); d.id = 'delroom';
+      d.onclick = async () => {
+        if (!confirm('이 방과 모든 의견을 삭제할까요?')) return;
+        const ps = await getDocs(collection(db, 'rooms', id, 'posts')); await Promise.all(ps.docs.map(p => deleteDoc(p.ref)));
+        await deleteDoc(doc(db, 'rooms', id)); location.hash = '';
+      };
+      share.after(d);
+    }
+  }));
+  unsubs.push(onSnapshot(query(collection(db, 'rooms', id, 'posts'), orderBy('createdAt', 'desc')), s => {
+    wall.textContent = '';
+    if (s.empty) { wall.style.columns = 'auto'; wall.append(el('div', 'empty', '첫 의견을 남겨보세요.')); return; }
+    wall.style.columns = '';
+    s.docs.forEach(d => {
+      const p = d.data(), n = el('div', 'note'); n.style.background = `var(--c${(p.color | 0) % 5})`;
+      n.append(el('p', null, p.text));
+      const m = el('div', 'meta');
+      if (p.photo) { const i = el('img'); i.src = p.photo; i.alt = ''; i.referrerPolicy = 'no-referrer'; m.append(i); }
+      m.append(el('span', 'who', p.name || '익명'));
+      const likes = p.likes || [], liked = user && likes.includes(user.uid);
+      const lb = el('button', 'like' + (liked ? ' on' : ''), '♥ ' + likes.length);
+      lb.setAttribute('aria-label', '좋아요');
+      lb.onclick = () => { if (!user) return login(); updateDoc(d.ref, { likes: liked ? arrayRemove(user.uid) : arrayUnion(user.uid) }); };
+      m.append(lb);
+      if (user && (user.uid === p.uid || (room && user.uid === room.ownerId))) {
+        const x = el('button', 'x', '✕'); x.setAttribute('aria-label', '삭제');
+        x.onclick = () => { if (confirm('이 의견을 삭제할까요?')) deleteDoc(d.ref); }; m.append(x);
+      }
+      n.append(m); wall.append(n);
+    });
+  }, () => { wall.textContent = '의견을 불러오지 못했어요.'; }));
+}
+</script>
+</body>
+</html>
