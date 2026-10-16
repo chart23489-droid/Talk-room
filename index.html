@@ -4,6 +4,9 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>토크룸</title>
+<link rel="icon" type="image/png" href="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAEAAAABABAMAAABYR2ztAAAAGFBMVEX7+//19P709P718/708/708/3LxvNINND+YxOFAAADg0lEQVR42m2Vv29cRRDHPzv3EhIR/OadIfwQMs+XAgkkdCgljZEcCiQEEQYKUqTz30LDnwAFpYv8oA4JEkgUGLuiy3ltJUJEJDv+gbjEuV2KfXe+d75p3mhn3ux3Zr4z65ZNUqpMJRIWo4xwpMqsaws9HwMqTktVEjFA5DGH4Iz0eMQghhpzXSUte6mjB8B0opLMJQqQSMonPSAKAAfvsaUoQVaI9QGo1BiAgPTo9ZH3wejLAezppdqA7kBRD9CLeMQ57SHUmuNLr663MYiAj8FTa62uQ/d84wFOdai+dHauckOn5aPqt4uu16MtDUpgIEtsCRjgmSO9Go/AgidOHY8DDDy2VyN4qdtX5GhPGPkF9ugsjg6U6tyJg8uYX7BLFpZ1KFBnGK4NQHrUQgxFE9+V1nZwpVEjSC4MacbO+AcBGeeo0w6NvS9A3ZiMEygOHB58p6PAkLmigKQ2tFldcxaVaYPTJYBNgE4f0AJcYgOANWsMv18BeP7jCni3Cty/AsB3XAV4fu+jXJy/H7gUC4idhxUA1/7LhrvjfNVAdNK+SSE+vBFCCE0hijHDgd1X9HSqxZT+y4sGrGu6euK4U+RIrgK+3n15fB4Abl3OaU5k/8/rY7UC+PTI0CJX5ulDOL715bhRkyv0iSSih7NVVV28fgNCAFIIIYRw5iZGoSZjDE8//gZY17PLzf/XHpCKqfbYmS/geEKFXKnOO/+Kvnu7rBiEjbfvDAb+zfKH1xmeTzb8a+M1ttwqavc+uftV+e1Lwa0B6D9nm14cGSO3Chdezajjwcz3+35G+Ku2JgIHOyHsZBaKwgc21RDgESxXVU7FFxCPbn9OugOWquyznh2PV4zo1gz0J20GVPcV+PkzAJ4d7jcOqOkJIeHCzdxp7RPd6hy6N2iTwagjitPhDPWHWYAkS9mzYt78AdKdYkjOPLXGR2zOZKVJIEXaMUvXHm4rJG63hj7N7MRNmT/XExhl0Z3v0iwYWZbWjjy1YEhiDABFT5eg2VHSc2AYfnumThGUwqXmvYk1wH57KZuTsr2j08yKmq1kK8t9FJGppOPJo5AyO6wJnJoW1HNCdUQbJulwXsmiRCDNvjijP8aa71weAx6iQzafLThgizeia3rBCVkN3NIWethXt/tWftxEcNGPPDESub+tKKa4FEY+Z+UWIxKdQnCl5VCdkSsN110IDvsfBQNo7J8PjjEAAAAASUVORK5CYII=">
+<link rel="apple-touch-icon" href="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAEAAAABABAMAAABYR2ztAAAAGFBMVEX7+//19P709P718/708/708/3LxvNINND+YxOFAAADg0lEQVR42m2Vv29cRRDHPzv3EhIR/OadIfwQMs+XAgkkdCgljZEcCiQEEQYKUqTz30LDnwAFpYv8oA4JEkgUGLuiy3ltJUJEJDv+gbjEuV2KfXe+d75p3mhn3ux3Zr4z65ZNUqpMJRIWo4xwpMqsaws9HwMqTktVEjFA5DGH4Iz0eMQghhpzXSUte6mjB8B0opLMJQqQSMonPSAKAAfvsaUoQVaI9QGo1BiAgPTo9ZH3wejLAezppdqA7kBRD9CLeMQ57SHUmuNLr663MYiAj8FTa62uQ/d84wFOdai+dHauckOn5aPqt4uu16MtDUpgIEtsCRjgmSO9Go/AgidOHY8DDDy2VyN4qdtX5GhPGPkF9ugsjg6U6tyJg8uYX7BLFpZ1KFBnGK4NQHrUQgxFE9+V1nZwpVEjSC4MacbO+AcBGeeo0w6NvS9A3ZiMEygOHB58p6PAkLmigKQ2tFldcxaVaYPTJYBNgE4f0AJcYgOANWsMv18BeP7jCni3Cty/AsB3XAV4fu+jXJy/H7gUC4idhxUA1/7LhrvjfNVAdNK+SSE+vBFCCE0hijHDgd1X9HSqxZT+y4sGrGu6euK4U+RIrgK+3n15fB4Abl3OaU5k/8/rY7UC+PTI0CJX5ulDOL715bhRkyv0iSSih7NVVV28fgNCAFIIIYRw5iZGoSZjDE8//gZY17PLzf/XHpCKqfbYmS/geEKFXKnOO/+Kvnu7rBiEjbfvDAb+zfKH1xmeTzb8a+M1ttwqavc+uftV+e1Lwa0B6D9nm14cGSO3Chdezajjwcz3+35G+Ku2JgIHOyHsZBaKwgc21RDgESxXVU7FFxCPbn9OugOWquyznh2PV4zo1gz0J20GVPcV+PkzAJ4d7jcOqOkJIeHCzdxp7RPd6hy6N2iTwagjitPhDPWHWYAkS9mzYt78AdKdYkjOPLXGR2zOZKVJIEXaMUvXHm4rJG63hj7N7MRNmT/XExhl0Z3v0iwYWZbWjjy1YEhiDABFT5eg2VHSc2AYfnumThGUwqXmvYk1wH57KZuTsr2j08yKmq1kK8t9FJGppOPJo5AyO6wJnJoW1HNCdUQbJulwXsmiRCDNvjijP8aa71weAx6iQzafLThgizeia3rBCVkN3NIWethXt/tWftxEcNGPPDESub+tKKa4FEY+Z+UWIxKdQnCl5VCdkSsN110IDvsfBQNo7J8PjjEAAAAASUVORK5CYII=">
+<meta name="theme-color" content="#4338ca">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Jua&family=Noto+Sans+KR:wght@400;500;700&display=swap" rel="stylesheet">
@@ -23,14 +26,13 @@ header{position:sticky;top:0;z-index:5;display:flex;align-items:center;justify-c
 .btn{background:var(--acc);color:var(--accT);padding:10px 16px;border-radius:999px;font-weight:700}
 .btn:disabled{opacity:.5}
 .link{background:none;color:var(--sub);padding:4px 6px;font-size:13px}
-main{max-width:1000px;margin:0 auto;padding:20px 16px 60px}
+main{max-width:1000px;margin:0 auto;padding:20px 16px 110px}
 h1{font-family:Jua,sans-serif;font-weight:400;font-size:clamp(28px,6vw,40px);margin:8px 0 6px;line-height:1.2}
 .sub{color:var(--sub);margin:0 0 20px}
 input,textarea{width:100%;font:inherit;color:var(--text);background:var(--card);border:2px solid var(--line);border-radius:14px;padding:12px 14px}
 textarea{min-height:90px;resize:vertical;margin-bottom:10px}
 .new{display:flex;gap:8px;margin-bottom:24px;flex-wrap:wrap}
 .new input{flex:1;min-width:170px}
-.chk{display:flex;gap:8px;align-items:center;width:100%;font-size:14px;color:var(--sub);cursor:pointer}.chk input{width:auto;margin:0;accent-color:var(--acc)}
 .bar{display:flex;gap:8px;flex-wrap:wrap;margin:4px 0 14px}
 .pill{background:var(--card);color:var(--text);border:2px solid var(--line);border-radius:999px;padding:8px 14px;font-size:14px;font-weight:700}
 .sec{font-family:Jua,sans-serif;font-size:20px;margin:26px 0 10px}
@@ -42,7 +44,6 @@ textarea{min-height:90px;resize:vertical;margin-bottom:10px}
 .room{text-align:left;color:var(--cT);border-radius:20px;padding:20px;min-height:130px;display:flex;flex-direction:column;justify-content:space-between}
 .room b{font-family:Jua,sans-serif;font-weight:400;font-size:22px;line-height:1.3;word-break:break-word}
 .room small{opacity:.7}
-.compose{background:var(--card);border:2px solid var(--line);border-radius:20px;padding:14px;margin-bottom:22px}
 .dots{display:flex;gap:8px;align-items:center;margin-bottom:10px}
 .dot{width:30px;height:30px;border-radius:50%;border:3px solid transparent;box-shadow:0 0 0 1px var(--line)}
 .dot.on{border-color:var(--text)}
@@ -61,6 +62,25 @@ textarea{min-height:90px;resize:vertical;margin-bottom:10px}
 .hint{background:var(--card);border:2px dashed var(--line);border-radius:18px;margin-bottom:22px;padding:20px}
 .setup{max-width:520px;margin:60px auto;padding:20px}
 @media (prefers-reduced-motion:no-preference){.like,.btn,.room{transition:transform .15s}.room:hover{transform:translateY(-3px)}}
+.tog{display:flex;align-items:center;gap:10px;width:100%;font-size:15px;cursor:pointer;user-select:none}
+.tog input{position:absolute;opacity:0;width:0;height:0;min-width:0;padding:0;border:0;margin:0}
+.track{width:46px;height:28px;border-radius:999px;background:var(--line);position:relative;flex:none}
+.track::after{content:"";position:absolute;top:3px;left:3px;width:22px;height:22px;border-radius:50%;background:#fff;box-shadow:0 1px 3px rgba(0,0,0,.3)}
+.tog input:checked+.track{background:var(--acc)}
+.tog input:checked+.track::after{transform:translateX(18px)}
+.tog input:focus-visible+.track{outline:3px solid var(--acc);outline-offset:2px}
+.togHint{width:100%;color:var(--sub);font-size:13px;margin-top:-4px}
+.preview{position:relative;margin-bottom:10px}
+.preview img{display:block;max-width:100%;max-height:190px;border-radius:12px}
+.preview .x{position:absolute;top:6px;right:6px;background:rgba(0,0,0,.6);color:#fff;border-radius:50%;width:28px;height:28px;opacity:1;padding:0}
+.rowa{display:flex;gap:8px;align-items:center;margin-bottom:10px}
+.note img{display:block;width:100%;border-radius:12px;margin-bottom:10px;background:rgba(0,0,0,.08);cursor:zoom-in}
+.lb img{max-width:100%;max-height:90vh;border-radius:10px}
+.fab{position:fixed;right:20px;bottom:calc(20px + env(safe-area-inset-bottom,0px));width:62px;height:62px;border-radius:50%;background:var(--acc);color:var(--accT);font-size:34px;line-height:1;padding:0;box-shadow:0 6px 18px rgba(0,0,0,.3);z-index:10}
+.sheetov{align-items:flex-end;padding:0}
+.sheet{background:var(--card);width:100%;max-width:560px;border-radius:22px 22px 0 0;padding:16px 16px calc(16px + env(safe-area-inset-bottom,0px))}
+.sheethead{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;font-size:17px}
+@media (prefers-reduced-motion:no-preference){.fab:active{transform:scale(.94)}.tog .track::after{transition:transform .15s}}
 </style>
 </head>
 <body>
@@ -74,9 +94,8 @@ textarea{min-height:90px;resize:vertical;margin-bottom:10px}
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
 import { getAuth, onAuthStateChanged, signInWithPopup, signInWithRedirect, getRedirectResult, GoogleAuthProvider, signOut } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
-import { getFirestore, collection, doc, addDoc, deleteDoc, updateDoc, getDocs, getDoc, setDoc, onSnapshot, query, orderBy, serverTimestamp, where, arrayUnion, arrayRemove } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+import { getFirestore, collection, doc, addDoc, deleteDoc, updateDoc, getDocs, onSnapshot, query, orderBy, serverTimestamp, where, arrayUnion, arrayRemove } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
-// ▼▼▼ Firebase 콘솔의 firebaseConfig 값을 여기에 붙여넣으세요 ▼▼▼
 const firebaseConfig = {
   apiKey: "AIzaSyBl3blEXyNM_2aYd_chGkduFNn152P1upI",
   authDomain: "talk-room-de31d.firebaseapp.com",
@@ -85,7 +104,6 @@ const firebaseConfig = {
   messagingSenderId: "432518377686",
   appId: "1:432518377686:web:b8dc5670e7b05a45b79977"
 };
-// ▲▲▲ ----------------------------------------------------- ▲▲▲
 
 const app = document.getElementById('app'), meBox = document.getElementById('me');
 const el = (t, c, x) => { const e = document.createElement(t); if (c) e.className = c; if (x != null) e.textContent = x; return e; };
@@ -144,14 +162,15 @@ function homeView() {
     const f = el('div', 'new'), t = el('input');
     t.placeholder = '방 주제 (예: 올해 최고의 게임은?)'; t.maxLength = 60;
     const b = el('button', 'btn', '방 만들기');
-    const lab = el('label', 'chk'), cb = el('input'); cb.type = 'checkbox';
-    lab.append(cb, document.createTextNode('🔒 비공개 방 (목록에 안 보이고, 링크로만 입장)'));
+    const lab = el('label', 'tog'), cb = el('input'), hint = el('small', 'togHint', ''); cb.type = 'checkbox';
+    lab.append(cb, el('span', 'track'), el('span', null, '🔒 비공개 방'));
+    cb.onchange = () => { hint.textContent = cb.checked ? '목록에 안 보이고, 링크를 받은 사람만 입장해요.' : ''; };
     b.onclick = async () => {
       const v = t.value.trim(); if (!v) return; b.disabled = true;
       try { const r = await addDoc(collection(db, 'rooms'), { title: v, ownerId: user.uid, ownerName: user.displayName || '익명', listed: !cb.checked, createdAt: serverTimestamp() }); location.hash = '#' + r.id; }
       catch (e) { b.disabled = false; alert('방을 만들지 못했어요. Firestore 보안 규칙을 확인해 주세요.'); }
     };
-    f.append(t, b, lab); app.append(f);
+    f.append(t, b, lab, hint); app.append(f);
   } else app.append(el('div', 'hint', '로그인하면 방을 만들고 의견을 남길 수 있어요. 구경은 로그인 없이도 가능해요.'));
 
   const mineHead = el('h2', 'sec', '내 비공개 방'), mine = el('div', 'rooms');
@@ -190,6 +209,64 @@ async function shareRoom(title, btn) {
   try { await navigator.clipboard.writeText(url); btn.textContent = '링크를 복사했어요'; } catch (e) { prompt('링크를 복사하세요', url); }
 }
 
+const loadImg = f => new Promise((ok, no) => { const u = URL.createObjectURL(f), i = new Image(); i.onload = () => { URL.revokeObjectURL(u); ok(i); }; i.onerror = () => no(new Error('이 사진 형식은 올릴 수 없어요. JPG나 PNG로 시도해 주세요.')); i.src = u; });
+async function shrink(f, max, q) {
+  const i = await loadImg(f), r = Math.min(1, max / Math.max(i.width, i.height)), c = document.createElement('canvas');
+  c.width = Math.round(i.width * r); c.height = Math.round(i.height * r); c.getContext('2d').drawImage(i, 0, 0, c.width, c.height);
+  return new Promise(ok => c.toBlob(ok, 'image/jpeg', q));
+}
+const toData = b => new Promise(ok => { const r = new FileReader(); r.onload = () => ok(r.result); r.readAsDataURL(b); });
+async function uploadPhoto(file) {
+  for (const [max, q] of [[900, .72], [700, .65], [500, .6]]) {
+    const d = await toData(await shrink(file, max, q));
+    if (d.length < 700000) return { type: 'image', url: d };
+  }
+  throw new Error('사진이 너무 커요. 더 작은 사진을 골라주세요.');
+}
+function lightbox(url) {
+  const ov = el('div', 'ov lb'), i = el('img'); i.src = url; i.alt = '확대한 사진'; ov.append(i); ov.onclick = () => ov.remove(); document.body.append(ov);
+}
+
+function openCompose(id) {
+  const ov = el('div', 'ov sheetov'), box = el('div', 'sheet');
+  const head = el('div', 'sheethead'), x = el('button', 'x', '✕'); x.setAttribute('aria-label', '닫기'); x.onclick = () => ov.remove();
+  head.append(el('b', null, '의견 쓰기'), x);
+  const ta = el('textarea'); ta.placeholder = '의견을 남겨보세요'; ta.maxLength = 300;
+  let file = null;
+  const prev = el('div', 'preview'); prev.hidden = true;
+  const pick = el('input'); pick.type = 'file'; pick.accept = 'image/*'; pick.hidden = true;
+  const attach = el('button', 'pill', '📷 사진'); attach.onclick = () => pick.click();
+  const rowa = el('div', 'rowa'); rowa.append(attach, pick);
+  const clearFile = () => { file = null; pick.value = ''; prev.hidden = true; prev.textContent = ''; };
+  pick.onchange = () => {
+    const f = pick.files[0]; if (!f) return;
+    if (!f.type.startsWith('image/')) { alert('사진만 올릴 수 있어요.'); clearFile(); return; }
+    if (f.size > 15 * 1024 * 1024) { alert('사진은 15MB 이하만 올릴 수 있어요.'); clearFile(); return; }
+    file = f; prev.textContent = ''; prev.hidden = false;
+    const m = el('img'); m.src = URL.createObjectURL(f); m.alt = '선택한 사진';
+    const rm = el('button', 'x', '✕'); rm.setAttribute('aria-label', '첨부 삭제'); rm.onclick = clearFile;
+    prev.append(m, rm);
+  };
+  const dots = el('div', 'dots');
+  for (let i = 0; i < 5; i++) {
+    const dd = el('button', 'dot' + (i === color ? ' on' : '')); dd.style.background = `var(--c${i})`; dd.setAttribute('aria-label', '카드 색상 ' + (i + 1));
+    dd.onclick = () => { color = i; [...dots.children].forEach((y, j) => { if (j < 5) y.classList.toggle('on', j === i); }); }; dots.append(dd);
+  }
+  const send = el('button', 'btn', '올리기');
+  send.onclick = async () => {
+    const v = ta.value.trim(); if (!v && !file) return;
+    send.disabled = true; send.textContent = '올리는 중…';
+    try {
+      const data = { text: v, color, uid: user.uid, name: user.displayName || '익명', photo: user.photoURL || '', likes: [], createdAt: serverTimestamp() };
+      if (file) data.media = await uploadPhoto(file);
+      await addDoc(collection(db, 'rooms', id, 'posts'), data); ov.remove();
+    } catch (e) { send.disabled = false; send.textContent = '올리기'; alert(e && e.message && !e.code ? e.message : '올리지 못했어요. 잠시 후 다시 시도해 주세요.'); }
+  };
+  dots.append(send); box.append(head, ta, prev, rowa, dots); ov.append(box);
+  ov.onclick = e => { if (e.target === ov) ov.remove(); };
+  document.body.append(ov); ta.focus();
+}
+
 function roomView(id) {
   reset();
   const back = el('button', 'link', '← 방 목록'); back.onclick = () => { location.hash = ''; };
@@ -203,24 +280,9 @@ function roomView(id) {
   cp.onclick = async () => { try { await navigator.clipboard.writeText(location.href); cp.textContent = '복사했어요'; } catch (e) { prompt('링크를 복사하세요', location.href); } };
   bar.append(sh, qr, cp); app.append(bar);
 
-  if (user) {
-    const c = el('div', 'compose'), ta = el('textarea'); ta.placeholder = '의견을 남겨보세요'; ta.maxLength = 300;
-    const dots = el('div', 'dots');
-    for (let i = 0; i < 5; i++) {
-      const dd = el('button', 'dot' + (i === color ? ' on' : '')); dd.style.background = `var(--c${i})`; dd.setAttribute('aria-label', '카드 색상 ' + (i + 1));
-      dd.onclick = () => { color = i; [...dots.children].forEach((x, j) => { if (j < 5) x.classList.toggle('on', j === i); }); }; dots.append(dd);
-    }
-    const send = el('button', 'btn', '올리기');
-    send.onclick = async () => {
-      const v = ta.value.trim(); if (!v) return; send.disabled = true;
-      try { await addDoc(collection(db, 'rooms', id, 'posts'), { text: v, color, uid: user.uid, name: user.displayName || '익명', photo: user.photoURL || '', likes: [], createdAt: serverTimestamp() }); ta.value = ''; }
-      catch (e) { alert('올리지 못했어요. 잠시 후 다시 시도해 주세요.'); }
-      send.disabled = false;
-    };
-    dots.append(send); c.append(ta, dots); app.append(c);
-  } else {
-    const hint = el('div', 'hint', '로그인하면 의견을 올리고 좋아요를 누를 수 있어요. '); const b = el('button', 'btn', 'Google로 로그인'); b.onclick = login; hint.append(el('br'), b); app.append(hint);
-  }
+  const fab = el('button', 'fab', '+'); fab.setAttribute('aria-label', '글쓰기');
+  fab.onclick = () => { if (!user) { login(); return; } openCompose(id); };
+  app.append(fab);
   const wall = el('div', 'wall'); app.append(wall);
 
   unsubs.push(onSnapshot(doc(db, 'rooms', id), s => {
@@ -246,7 +308,11 @@ function roomView(id) {
     wall.style.columns = '';
     s.docs.forEach(d => {
       const p = d.data(), n = el('div', 'note'); n.style.background = `var(--c${(p.color | 0) % 5})`;
-      n.append(el('p', null, p.text));
+      const mu = p.media && p.media.url;
+      if (mu && p.media.type !== 'video' && /^(https:\/\/|data:image\/)/.test(mu)) {
+        const md = el('img'); md.loading = 'lazy'; md.alt = '첨부 사진'; md.onclick = () => lightbox(mu); md.src = mu; n.append(md);
+      }
+      if (p.text) n.append(el('p', null, p.text));
       const m = el('div', 'meta');
       if (p.photo) { const i = el('img'); i.src = p.photo; i.alt = ''; i.referrerPolicy = 'no-referrer'; m.append(i); }
       m.append(el('span', 'who', p.name || '익명'));
