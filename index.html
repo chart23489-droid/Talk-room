@@ -30,7 +30,14 @@ input,textarea{width:100%;font:inherit;color:var(--text);background:var(--card);
 textarea{min-height:90px;resize:vertical;margin-bottom:10px}
 .new{display:flex;gap:8px;margin-bottom:24px;flex-wrap:wrap}
 .new input{flex:1;min-width:170px}
-.gate{max-width:420px;margin:24px auto;text-align:center}.gate p{margin:0 0 12px}.gate input{margin-bottom:10px}
+.chk{display:flex;gap:8px;align-items:center;width:100%;font-size:14px;color:var(--sub);cursor:pointer}.chk input{width:auto;margin:0;accent-color:var(--acc)}
+.bar{display:flex;gap:8px;flex-wrap:wrap;margin:4px 0 14px}
+.pill{background:var(--card);color:var(--text);border:2px solid var(--line);border-radius:999px;padding:8px 14px;font-size:14px;font-weight:700}
+.sec{font-family:Jua,sans-serif;font-size:20px;margin:26px 0 10px}
+.ov{position:fixed;inset:0;background:rgba(0,0,0,.55);display:flex;align-items:center;justify-content:center;padding:20px;z-index:20}
+.qrbox{background:var(--card);border-radius:22px;padding:20px;text-align:center;max-width:320px;width:100%}
+.qrbox svg{display:block;width:100%;max-width:260px;margin:12px auto;border-radius:12px}
+.qrbox small{display:block;word-break:break-all;color:var(--sub);margin-bottom:12px}
 .rooms{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:14px}
 .room{text-align:left;color:var(--cT);border-radius:20px;padding:20px;min-height:130px;display:flex;flex-direction:column;justify-content:space-between}
 .room b{font-family:Jua,sans-serif;font-weight:400;font-size:22px;line-height:1.3;word-break:break-word}
@@ -63,10 +70,11 @@ textarea{min-height:90px;resize:vertical;margin-bottom:10px}
 </header>
 <main id="app"></main>
 
+<script src="https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.js"></script>
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
 import { getAuth, onAuthStateChanged, signInWithPopup, signInWithRedirect, getRedirectResult, GoogleAuthProvider, signOut } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
-import { getFirestore, collection, doc, addDoc, deleteDoc, updateDoc, getDocs, getDoc, setDoc, onSnapshot, query, orderBy, serverTimestamp, arrayUnion, arrayRemove } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+import { getFirestore, collection, doc, addDoc, deleteDoc, updateDoc, getDocs, getDoc, setDoc, onSnapshot, query, orderBy, serverTimestamp, where, arrayUnion, arrayRemove } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
 // ▼▼▼ Firebase 콘솔의 firebaseConfig 값을 여기에 붙여넣으세요 ▼▼▼
 const firebaseConfig = {
@@ -113,88 +121,88 @@ function login() {
   });
 }
 function reset() { token++; unsubs.forEach(f => f()); unsubs = []; app.textContent = ''; }
-async function sha(pw, id) { const d = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(pw + ':' + id)); return [...new Uint8Array(d)].map(b => b.toString(16).padStart(2, '0')).join(''); }
 document.getElementById('home').onclick = () => { location.hash = ''; };
 function route() { const id = location.hash.slice(1); id ? roomView(id) : homeView(); }
+
+const tm = r => (r.createdAt && r.createdAt.toMillis) ? r.createdAt.toMillis() : Date.now();
+function roomCard(id, r, i) {
+  const b = el('button', 'room'); b.style.background = `var(--c${i % 5})`;
+  b.append(el('b', null, (r.listed === true ? '' : '🔒 ') + r.title), el('small', null, r.ownerName || ''));
+  b.onclick = () => { location.hash = '#' + id; }; return b;
+}
+function fillRooms(box, docs, emptyMsg) {
+  box.textContent = '';
+  if (!docs.length) { box.style.display = 'block'; box.append(el('div', 'empty', emptyMsg)); return; }
+  box.style.display = '';
+  docs.forEach((d, i) => box.append(roomCard(d.id, d.data(), i)));
+}
 
 function homeView() {
   reset(); document.title = '토크룸';
   app.append(el('h1', null, '주제를 정하고, 같이 이야기해요'), el('p', 'sub', '방을 만들어 링크를 보내면 의견이 실시간으로 쌓여요.'));
   if (user) {
-    const f = el('div', 'new'), t = el('input'), pw = el('input');
+    const f = el('div', 'new'), t = el('input');
     t.placeholder = '방 주제 (예: 올해 최고의 게임은?)'; t.maxLength = 60;
-    pw.placeholder = '비밀번호 (선택, 비우면 공개방)'; pw.maxLength = 30; pw.autocomplete = 'off';
     const b = el('button', 'btn', '방 만들기');
+    const lab = el('label', 'chk'), cb = el('input'); cb.type = 'checkbox';
+    lab.append(cb, document.createTextNode('🔒 비공개 방 (목록에 안 보이고, 링크로만 입장)'));
     b.onclick = async () => {
-      const v = t.value.trim(); if (!v) return; b.disabled = true; const p = pw.value;
-      try {
-        const ref = doc(collection(db, 'rooms'));
-        await setDoc(ref, { title: v, ownerId: user.uid, ownerName: user.displayName || '익명', locked: !!p, createdAt: serverTimestamp() });
-        if (p) await setDoc(doc(ref, 'secret', 'key'), { hash: await sha(p, ref.id) });
-        location.hash = '#' + ref.id;
-      } catch (e) { b.disabled = false; alert('방을 만들지 못했어요. Firestore 보안 규칙을 확인해 주세요.'); }
+      const v = t.value.trim(); if (!v) return; b.disabled = true;
+      try { const r = await addDoc(collection(db, 'rooms'), { title: v, ownerId: user.uid, ownerName: user.displayName || '익명', listed: !cb.checked, createdAt: serverTimestamp() }); location.hash = '#' + r.id; }
+      catch (e) { b.disabled = false; alert('방을 만들지 못했어요. Firestore 보안 규칙을 확인해 주세요.'); }
     };
-    f.append(t, pw, b); app.append(f);
+    f.append(t, b, lab); app.append(f);
   } else app.append(el('div', 'hint', '로그인하면 방을 만들고 의견을 남길 수 있어요. 구경은 로그인 없이도 가능해요.'));
+
+  const mineHead = el('h2', 'sec', '내 비공개 방'), mine = el('div', 'rooms');
+  mineHead.hidden = true; mine.hidden = true; app.append(mineHead, mine);
+  app.append(el('h2', 'sec', '공개 방'));
   const list = el('div', 'rooms'); app.append(list);
-  unsubs.push(onSnapshot(query(collection(db, 'rooms'), orderBy('createdAt', 'desc')), s => {
-    list.textContent = '';
-    if (s.empty) { list.style.display = 'block'; list.append(el('div', 'empty', '아직 방이 없어요. 첫 방을 만들어보세요.')); return; }
-    list.style.display = '';
-    s.docs.forEach((d, i) => {
-      const r = d.data(), b = el('button', 'room'); b.style.background = `var(--c${i % 5})`;
-      b.append(el('b', null, (r.locked ? '🔒 ' : '') + r.title), el('small', null, r.ownerName || ''));
-      b.onclick = () => { location.hash = '#' + d.id; }; list.append(b);
-    });
+
+  unsubs.push(onSnapshot(query(collection(db, 'rooms'), where('listed', '==', true)), s => {
+    const d = s.docs.slice().sort((a, b) => tm(b.data()) - tm(a.data()));
+    fillRooms(list, d, '아직 공개 방이 없어요. 첫 방을 만들어보세요.');
   }, () => { list.textContent = '방 목록을 불러오지 못했어요.'; }));
+
+  if (user) unsubs.push(onSnapshot(query(collection(db, 'rooms'), where('ownerId', '==', user.uid)), s => {
+    const d = s.docs.filter(x => x.data().listed !== true).sort((a, b) => tm(b.data()) - tm(a.data()));
+    mineHead.hidden = mine.hidden = !d.length; if (d.length) fillRooms(mine, d, '');
+  }, () => {}));
 }
 
-async function roomView(id) {
-  reset(); const my = token;
+function showQR(url, title) {
+  if (typeof qrcode !== 'function') { alert('QR 코드를 불러오지 못했어요. 인터넷 연결을 확인해 주세요.'); return; }
+  const q = qrcode(0, 'M'); q.addData(url); q.make();
+  const n = q.getModuleCount(), m = 4, size = n + 2 * m; let d = '';
+  for (let r = 0; r < n; r++) for (let c = 0; c < n; c++) if (q.isDark(r, c)) d += `M${c + m} ${r + m}h1v1h-1z`;
+  const ns = 'http://www.w3.org/2000/svg', svg = document.createElementNS(ns, 'svg');
+  svg.setAttribute('viewBox', `0 0 ${size} ${size}`); svg.setAttribute('role', 'img'); svg.setAttribute('aria-label', title + ' 입장 QR 코드');
+  const bg = document.createElementNS(ns, 'rect'); bg.setAttribute('width', size); bg.setAttribute('height', size); bg.setAttribute('fill', '#fff');
+  const path = document.createElementNS(ns, 'path'); path.setAttribute('d', d); path.setAttribute('fill', '#000'); path.setAttribute('shape-rendering', 'crispEdges');
+  svg.append(bg, path);
+  const ov = el('div', 'ov'), box = el('div', 'qrbox'), close = el('button', 'btn', '닫기');
+  close.onclick = () => ov.remove(); ov.onclick = e => { if (e.target === ov) ov.remove(); };
+  box.append(el('b', null, title), svg, el('small', null, url), close); ov.append(box); document.body.append(ov);
+}
+async function shareRoom(title, btn) {
+  const url = location.href;
+  if (navigator.share) { try { await navigator.share({ title, text: title + ' · 토크룸', url }); } catch (e) {} return; }
+  try { await navigator.clipboard.writeText(url); btn.textContent = '링크를 복사했어요'; } catch (e) { prompt('링크를 복사하세요', url); }
+}
+
+function roomView(id) {
+  reset();
   const back = el('button', 'link', '← 방 목록'); back.onclick = () => { location.hash = ''; };
   const h = el('h1', null, ''), sub = el('p', 'sub', '');
   app.append(back, h, sub);
-  let snap;
-  try { snap = await getDoc(doc(db, 'rooms', id)); } catch (e) { h.textContent = '불러오지 못했어요'; return; }
-  if (my !== token) return;
-  if (!snap.exists()) { h.textContent = '없는 방이에요'; sub.textContent = '삭제됐거나 주소가 잘못됐어요.'; return; }
-  const room = snap.data(), isOwner = !!user && user.uid === room.ownerId;
-  h.textContent = (room.locked ? '🔒 ' : '') + room.title; sub.textContent = '만든 사람 ' + (room.ownerName || '익명'); document.title = room.title + ' · 토크룸';
-  let ok = !room.locked || isOwner;
-  if (!ok && user) { try { ok = (await getDoc(doc(db, 'rooms', id, 'members', user.uid))).exists(); } catch (e) {} if (my !== token) return; }
-  if (!ok) {
-    const g = el('div', 'compose gate');
-    if (!user) {
-      const b = el('button', 'btn', 'Google로 로그인'); b.onclick = login;
-      g.append(el('p', null, '비공개 방이에요. 로그인 후 비밀번호를 입력해 주세요.'), b);
-    } else {
-      const pw = el('input'); pw.type = 'password'; pw.placeholder = '방 비밀번호'; pw.autocomplete = 'off';
-      const b = el('button', 'btn', '입장');
-      const go = async () => {
-        const v = pw.value; if (!v) return; b.disabled = true;
-        try { await setDoc(doc(db, 'rooms', id, 'members', user.uid), { hash: await sha(v, id) }); roomView(id); }
-        catch (e) { b.disabled = false; alert('비밀번호가 맞지 않아요.'); }
-      };
-      b.onclick = go; pw.onkeydown = e => { if (e.key === 'Enter') go(); };
-      g.append(el('p', null, '비공개 방이에요. 비밀번호를 입력해 주세요.'), pw, b);
-    }
-    app.append(g); return;
-  }
-  const share = el('button', 'link', '링크 복사');
-  share.onclick = async () => { try { await navigator.clipboard.writeText(location.href); share.textContent = '복사했어요'; } catch { share.textContent = '주소창의 링크를 복사하세요'; } };
-  app.append(share);
-  if (isOwner) {
-    const d = el('button', 'link', '방 삭제');
-    d.onclick = async () => {
-      if (!confirm('이 방과 모든 의견을 삭제할까요?')) return;
-      try {
-        for (const sub of ['posts', 'members']) { const ps = await getDocs(collection(db, 'rooms', id, sub)); await Promise.all(ps.docs.map(p => deleteDoc(p.ref))); }
-        await deleteDoc(doc(db, 'rooms', id, 'secret', 'key'));
-        await deleteDoc(doc(db, 'rooms', id)); location.hash = '';
-      } catch (e) { alert('삭제하지 못했어요.'); }
-    };
-    app.append(d);
-  }
+  let room = null;
+  const bar = el('div', 'bar');
+  const sh = el('button', 'pill', '공유'), qr = el('button', 'pill', 'QR'), cp = el('button', 'pill', '링크 복사');
+  sh.onclick = () => shareRoom(room ? room.title : '토크룸', sh);
+  qr.onclick = () => showQR(location.href, room ? room.title : '토크룸');
+  cp.onclick = async () => { try { await navigator.clipboard.writeText(location.href); cp.textContent = '복사했어요'; } catch (e) { prompt('링크를 복사하세요', location.href); } };
+  bar.append(sh, qr, cp); app.append(bar);
+
   if (user) {
     const c = el('div', 'compose'), ta = el('textarea'); ta.placeholder = '의견을 남겨보세요'; ta.maxLength = 300;
     const dots = el('div', 'dots');
@@ -214,6 +222,24 @@ async function roomView(id) {
     const hint = el('div', 'hint', '로그인하면 의견을 올리고 좋아요를 누를 수 있어요. '); const b = el('button', 'btn', 'Google로 로그인'); b.onclick = login; hint.append(el('br'), b); app.append(hint);
   }
   const wall = el('div', 'wall'); app.append(wall);
+
+  unsubs.push(onSnapshot(doc(db, 'rooms', id), s => {
+    if (!s.exists()) { room = null; h.textContent = '없는 방이에요'; sub.textContent = '삭제됐거나 주소가 잘못됐어요.'; return; }
+    room = s.data(); h.textContent = (room.listed === true ? '' : '🔒 ') + room.title;
+    sub.textContent = (room.listed === true ? '' : '비공개 방 · 링크를 아는 사람만 들어올 수 있어요 · ') + '만든 사람 ' + (room.ownerName || '익명');
+    document.title = room.title + ' · 토크룸';
+    if (user && user.uid === room.ownerId && !bar.querySelector('.del')) {
+      const d = el('button', 'pill del', '방 삭제');
+      d.onclick = async () => {
+        if (!confirm('이 방과 모든 의견을 삭제할까요?')) return;
+        try {
+          const ps = await getDocs(collection(db, 'rooms', id, 'posts')); await Promise.all(ps.docs.map(p => deleteDoc(p.ref)));
+          await deleteDoc(doc(db, 'rooms', id)); location.hash = '';
+        } catch (e) { alert('삭제하지 못했어요.'); }
+      };
+      bar.append(d);
+    }
+  }));
   unsubs.push(onSnapshot(query(collection(db, 'rooms', id, 'posts'), orderBy('createdAt', 'desc')), s => {
     wall.textContent = '';
     if (s.empty) { wall.style.columns = 'auto'; wall.append(el('div', 'empty', '첫 의견을 남겨보세요.')); return; }
@@ -229,7 +255,7 @@ async function roomView(id) {
       lb.setAttribute('aria-label', '좋아요');
       lb.onclick = () => { if (!user) return login(); updateDoc(d.ref, { likes: liked ? arrayRemove(user.uid) : arrayUnion(user.uid) }); };
       m.append(lb);
-      if (user && (user.uid === p.uid || isOwner)) {
+      if (user && (user.uid === p.uid || (room && user.uid === room.ownerId))) {
         const x = el('button', 'x', '✕'); x.setAttribute('aria-label', '삭제');
         x.onclick = () => { if (confirm('이 의견을 삭제할까요?')) deleteDoc(d.ref); }; m.append(x);
       }
