@@ -107,7 +107,7 @@ const firebaseConfig = {
 // ▲▲▲ -----------------------------------------------------
 
 // ▼ 사진/동영상 업로드용 Cloudinary 설정 (무료, 카드 불필요). 비워두면 사진만(자동 압축) 가능, 동영상은 불가
-const CLOUDINARY = { cloudName: "", uploadPreset: "" };
+const CLOUDINARY = { cloudName: "gsumifqd", uploadPreset: "Talkroom" };
 const cloudOn = !!(CLOUDINARY.cloudName && CLOUDINARY.uploadPreset);
 
 const app = document.getElementById('app'), meBox = document.getElementById('me');
@@ -349,5 +349,3 @@ function roomView(id) {
 </script>
 </body>
 </html>
-
-  
