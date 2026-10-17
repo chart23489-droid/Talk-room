@@ -75,6 +75,15 @@ textarea{min-height:110px;resize:vertical;margin-bottom:10px}
 .preview img,.preview video{display:block;max-width:100%;max-height:190px;border-radius:8px}
 .preview .x{position:absolute;top:6px;right:6px;background:rgba(0,0,0,.65);color:#fff;border-radius:6px;padding:4px 9px;opacity:1;text-decoration:none}
 .rowa{display:flex;gap:8px;align-items:center;margin-bottom:12px}
+.acts{display:flex;gap:12px;margin-top:10px}
+.cbox{margin-top:10px;padding-top:10px;border-top:1px solid color-mix(in srgb,currentColor 22%,transparent)}
+.cm{font-size:14px;margin-bottom:8px;word-break:break-word;white-space:pre-wrap}
+.cm b{font-weight:700;margin-right:6px}
+.cm .x{margin-left:4px}
+.cform{display:flex;gap:6px}
+.cform input{flex:1;min-width:0;padding:8px 10px;font-size:14px}
+.cform .btn{padding:8px 12px;font-size:14px}
+.cnote{font-size:13px;opacity:.7}
 .fab{position:fixed;right:20px;bottom:calc(20px + env(safe-area-inset-bottom,0px));width:58px;height:58px;border-radius:50%;background:var(--ink);color:var(--inkT);font-size:30px;line-height:1;font-weight:300;padding:0;box-shadow:0 2px 10px rgba(0,0,0,.25);z-index:10}
 .sheetov{align-items:flex-end;padding:0}
 .sheet{background:var(--card);width:100%;max-width:560px;border-radius:16px 16px 0 0;padding:16px 16px calc(16px + env(safe-area-inset-bottom,0px))}
@@ -93,7 +102,7 @@ textarea{min-height:110px;resize:vertical;margin-bottom:10px}
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
 import { getAuth, onAuthStateChanged, signInWithPopup, signInWithRedirect, getRedirectResult, GoogleAuthProvider, signOut } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
-import { getFirestore, collection, doc, addDoc, deleteDoc, updateDoc, getDocs, getDoc, setDoc, onSnapshot, query, orderBy, serverTimestamp, where, arrayUnion, arrayRemove } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+import { getFirestore, collection, doc, addDoc, deleteDoc, updateDoc, getDocs, getDoc, setDoc, onSnapshot, query, orderBy, serverTimestamp, where, arrayUnion, arrayRemove, writeBatch, increment } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
 // ▼▼▼ Firebase 콘솔의 firebaseConfig 값을 여기에 붙여넣으세요 ▼▼▼
 const firebaseConfig = {
@@ -143,7 +152,9 @@ function login() {
     alert('로그인 실패\n오류 코드: ' + e.code + '\n' + e.message);
   });
 }
-function reset() { token++; unsubs.forEach(f => f()); unsubs = []; app.textContent = ''; }
+let cmUnsubs = [], openSet = new Set(), drafts = {};
+function stopComments() { cmUnsubs.forEach(f => f()); cmUnsubs = []; }
+function reset() { token++; unsubs.forEach(f => f()); unsubs = []; stopComments(); openSet = new Set(); drafts = {}; app.textContent = ''; }
 document.getElementById('home').onclick = () => { location.hash = ''; };
 function route() { const id = location.hash.slice(1); id ? roomView(id) : homeView(); }
 
@@ -237,6 +248,30 @@ function lightbox(url) {
   const ov = el('div', 'ov lb'), i = el('img'); i.src = url; i.alt = '확대한 사진'; ov.append(i); ov.onclick = () => ov.remove(); document.body.append(ov);
 }
 
+async function removePost(ref) {
+  const cs = await getDocs(collection(ref, 'comments'));
+  await Promise.all(cs.docs.map(c => deleteDoc(c.ref)));
+  await deleteDoc(ref);
+}
+function openEdit(ref, p) {
+  const ov = el('div', 'ov sheetov'), box = el('div', 'sheet');
+  const head = el('div', 'sheethead'), x = el('button', 'x', '닫기'); x.onclick = () => ov.remove();
+  head.append(el('b', null, '글 수정'), x);
+  const ta = el('textarea'); ta.maxLength = 300; ta.value = p.text || '';
+  const save = el('button', 'btn', '저장');
+  save.onclick = async () => {
+    const v = ta.value.trim(); if (!v && !p.media) return;
+    if (v === (p.text || '')) { ov.remove(); return; }
+    save.disabled = true;
+    try { await updateDoc(ref, { text: v, edited: true }); ov.remove(); }
+    catch (e) { save.disabled = false; alert('수정하지 못했어요. 잠시 후 다시 시도해 주세요.'); }
+  };
+  const row = el('div', 'dots'); row.append(save);
+  box.append(head, ta, row); ov.append(box);
+  ov.onclick = e => { if (e.target === ov) ov.remove(); };
+  document.body.append(ov); ta.focus();
+}
+
 function openCompose(id) {
   const ov = el('div', 'ov sheetov'), box = el('div', 'sheet');
   const head = el('div', 'sheethead'), x = el('button', 'x', '닫기'); x.setAttribute('aria-label', '닫기'); x.onclick = () => ov.remove();
@@ -309,7 +344,7 @@ function roomView(id) {
       d.onclick = async () => {
         if (!confirm('이 방과 모든 의견을 삭제할까요?')) return;
         try {
-          const ps = await getDocs(collection(db, 'rooms', id, 'posts')); await Promise.all(ps.docs.map(p => deleteDoc(p.ref)));
+          const ps = await getDocs(collection(db, 'rooms', id, 'posts')); await Promise.all(ps.docs.map(p => removePost(p.ref)));
           await deleteDoc(doc(db, 'rooms', id)); location.hash = '';
         } catch (e) { alert('삭제하지 못했어요.'); }
       };
@@ -317,7 +352,7 @@ function roomView(id) {
     }
   }));
   unsubs.push(onSnapshot(query(collection(db, 'rooms', id, 'posts'), orderBy('createdAt', 'desc')), s => {
-    wall.textContent = '';
+    stopComments(); wall.textContent = '';
     if (s.empty) { wall.style.columns = 'auto'; wall.append(el('div', 'empty', '첫 글을 남겨보세요.')); return; }
     wall.style.columns = '';
     s.docs.forEach(d => {
@@ -332,7 +367,7 @@ function roomView(id) {
       if (p.text) n.append(el('p', null, p.text));
       const m = el('div', 'meta');
       if (p.photo) { const i = el('img'); i.src = p.photo; i.alt = ''; i.referrerPolicy = 'no-referrer'; m.append(i); }
-      m.append(el('span', 'who', p.name || '익명'));
+      m.append(el('span', 'who', (p.name || '익명') + (p.edited ? ' · 수정됨' : '')));
       const likes = p.likes || [], liked = user && likes.includes(user.uid);
       const lb = el('button', 'like' + (liked ? ' on' : ''), '좋아요 ' + likes.length);
       lb.setAttribute('aria-label', '좋아요');
@@ -340,9 +375,58 @@ function roomView(id) {
       m.append(lb);
       if (user && (user.uid === p.uid || (room && user.uid === room.ownerId))) {
         const x = el('button', 'x', '삭제'); x.setAttribute('aria-label', '글 삭제');
-        x.onclick = () => { if (confirm('이 의견을 삭제할까요?')) deleteDoc(d.ref); }; m.append(x);
+        x.onclick = async () => { if (!confirm('이 의견을 삭제할까요?')) return; try { await removePost(d.ref); } catch (e) { alert('삭제하지 못했어요.'); } }; m.append(x);
       }
-      n.append(m); wall.append(n);
+      n.append(m);
+      const acts = el('div', 'acts'), cbtn = el('button', 'x', '댓글' + (p.cc > 0 ? ' ' + p.cc : ''));
+      acts.append(cbtn);
+      if (user && user.uid === p.uid) { const eb = el('button', 'x', '수정'); eb.onclick = () => openEdit(d.ref, p); acts.append(eb); }
+      const cbox = el('div', 'cbox'), clist = el('div'); cbox.hidden = true; cbox.append(clist);
+      if (user) {
+        const form = el('div', 'cform'), ci = el('input'), cs = el('button', 'btn', '등록');
+        ci.placeholder = '댓글 쓰기'; ci.maxLength = 200; ci.value = drafts[d.id] || ''; ci.oninput = () => { drafts[d.id] = ci.value; };
+        const send = async () => {
+          const v = ci.value.trim(); if (!v) return; cs.disabled = true;
+          try {
+            const b = writeBatch(db);
+            b.set(doc(collection(d.ref, 'comments')), { text: v, uid: user.uid, name: user.displayName || '익명', photo: user.photoURL || '', createdAt: serverTimestamp() });
+            b.update(d.ref, { cc: increment(1) });
+            await b.commit(); ci.value = ''; drafts[d.id] = '';
+          } catch (e) { alert('댓글을 달지 못했어요.'); }
+          cs.disabled = false;
+        };
+        cs.onclick = send; ci.onkeydown = e => { if (e.key === 'Enter') send(); };
+        form.append(ci, cs); cbox.append(form);
+      } else {
+        const l = el('button', 'x', '로그인하면 댓글을 쓸 수 있어요'); l.onclick = login; cbox.append(l);
+      }
+      let un = null;
+      const openC = () => {
+        cbox.hidden = false; openSet.add(d.id);
+        un = onSnapshot(query(collection(d.ref, 'comments'), orderBy('createdAt', 'asc')), cs => {
+          clist.textContent = '';
+          if (cs.empty) clist.append(el('div', 'cnote', '아직 댓글이 없어요.'));
+          cs.docs.forEach(c => {
+            const cd = c.data(), row = el('div', 'cm');
+            row.append(el('b', null, cd.name || '익명'), document.createTextNode(cd.text || ''));
+            if (user && (user.uid === cd.uid || user.uid === p.uid || (room && user.uid === room.ownerId))) {
+              const del = el('button', 'x', '삭제');
+              del.onclick = async () => {
+                if (!confirm('이 댓글을 삭제할까요?')) return;
+                try { const b = writeBatch(db); b.delete(c.ref); if (p.cc > 0) b.update(d.ref, { cc: increment(-1) }); await b.commit(); }
+                catch (e) { alert('삭제하지 못했어요.'); }
+              };
+              row.append(del);
+            }
+            clist.append(row);
+          });
+        }, () => { clist.textContent = '댓글을 불러오지 못했어요.'; });
+        cmUnsubs.push(() => { if (un) un(); });
+      };
+      const closeC = () => { cbox.hidden = true; openSet.delete(d.id); if (un) { un(); un = null; } };
+      cbtn.onclick = () => { if (cbox.hidden) openC(); else closeC(); };
+      if (openSet.has(d.id)) openC();
+      n.append(acts, cbox); wall.append(n);
     });
   }, () => { wall.textContent = '의견을 불러오지 못했어요.'; }));
 }
