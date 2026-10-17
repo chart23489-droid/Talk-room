@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://talkroom-sooty.vercel.app/sitemap.xml
