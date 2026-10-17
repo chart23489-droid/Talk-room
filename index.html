@@ -84,6 +84,16 @@ textarea{min-height:110px;resize:vertical;margin-bottom:10px}
 .cform input{flex:1;min-width:0;padding:8px 10px;font-size:14px}
 .cform .btn{padding:8px 12px;font-size:14px}
 .cnote{font-size:13px;opacity:.7}
+.pgrid{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin-bottom:10px}
+.pgrid[hidden]{display:none}
+.pitem{position:relative}
+.pitem img,.pitem video{display:block;width:100%;aspect-ratio:1;object-fit:cover;border-radius:8px}
+.pitem .x{position:absolute;top:4px;right:4px;background:rgba(0,0,0,.65);color:#fff;border-radius:6px;padding:2px 7px;font-size:12px;opacity:1;text-decoration:none}
+.mgrid{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:12px}
+.note .mgrid img{aspect-ratio:1;object-fit:cover;margin:0}
+.note .mgrid video{grid-column:1/-1;margin:0}
+.note .cmedia{display:block;width:auto;max-width:100%;max-height:200px;margin:6px 0 0;border-radius:6px}
+.cform .pill{padding:7px 10px;font-size:13px;white-space:nowrap}
 .fab{position:fixed;right:20px;bottom:calc(20px + env(safe-area-inset-bottom,0px));width:58px;height:58px;border-radius:50%;background:var(--ink);color:var(--inkT);font-size:30px;line-height:1;font-weight:300;padding:0;box-shadow:0 2px 10px rgba(0,0,0,.25);z-index:10}
 .sheetov{align-items:flex-end;padding:0}
 .sheet{background:var(--card);width:100%;max-width:560px;border-radius:16px 16px 0 0;padding:16px 16px calc(16px + env(safe-area-inset-bottom,0px))}
@@ -102,7 +112,7 @@ textarea{min-height:110px;resize:vertical;margin-bottom:10px}
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
 import { getAuth, onAuthStateChanged, signInWithPopup, signInWithRedirect, getRedirectResult, GoogleAuthProvider, signOut } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
-import { getFirestore, collection, doc, addDoc, deleteDoc, updateDoc, getDocs, getDoc, setDoc, onSnapshot, query, orderBy, serverTimestamp, where, arrayUnion, arrayRemove, writeBatch, increment } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+import { getFirestore, collection, doc, addDoc, deleteDoc, updateDoc, getDocs, getDoc, setDoc, onSnapshot, query, orderBy, serverTimestamp, where, arrayUnion, arrayRemove, writeBatch, increment, deleteField } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
 // ▼▼▼ Firebase 콘솔의 firebaseConfig 값을 여기에 붙여넣으세요 ▼▼▼
 const firebaseConfig = {
@@ -152,9 +162,9 @@ function login() {
     alert('로그인 실패\n오류 코드: ' + e.code + '\n' + e.message);
   });
 }
-let cmUnsubs = [], openSet = new Set(), drafts = {};
+let cmUnsubs = [], openSet = new Set(), drafts = {}, pickers = {}, sending = new Set(), focusPost = null;
 function stopComments() { cmUnsubs.forEach(f => f()); cmUnsubs = []; }
-function reset() { token++; unsubs.forEach(f => f()); unsubs = []; stopComments(); openSet = new Set(); drafts = {}; app.textContent = ''; }
+function reset() { token++; unsubs.forEach(f => f()); unsubs = []; stopComments(); openSet = new Set(); drafts = {}; pickers = {}; app.textContent = ''; }
 document.getElementById('home').onclick = () => { location.hash = ''; };
 function route() { const id = location.hash.slice(1); id ? roomView(id) : homeView(); }
 
@@ -238,10 +248,10 @@ async function cloudUpload(file, kind) {
   const j = await r.json(); if (!r.ok || !j.secure_url) throw new Error('파일 업로드에 실패했어요. Cloudinary 설정을 확인해 주세요.');
   return j.secure_url;
 }
-async function uploadMedia(file) {
+async function uploadMedia(file, budget) {
   if (file.type.startsWith('video/')) return { type: 'video', url: await cloudUpload(file, 'video') };
   if (cloudOn) return { type: 'image', url: await cloudUpload(await shrink(file, 1600, .85), 'image') };
-  for (const [max, q] of [[900, .72], [700, .65], [500, .6]]) { const d = await toData(await shrink(file, max, q)); if (d.length < 700000) return { type: 'image', url: d }; }
+  for (const [max, q] of [[900, .72], [700, .65], [500, .6], [400, .5], [300, .45]]) { const d = await toData(await shrink(file, max, q)); if (d.length < (budget || 650000)) return { type: 'image', url: d }; }
   throw new Error('사진이 너무 커요. 더 작은 사진을 골라주세요.');
 }
 function lightbox(url) {
@@ -253,49 +263,85 @@ async function removePost(ref) {
   await Promise.all(cs.docs.map(c => deleteDoc(c.ref)));
   await deleteDoc(ref);
 }
+const validUrl = u => typeof u === 'string' && /^(https:\/\/|data:image\/)/.test(u);
+const postMedias = p => (Array.isArray(p.medias) ? p.medias : (p.media ? [p.media] : [])).filter(m => m && validUrl(m.url));
+function mediaEl(m, cls) {
+  let e;
+  if (m.type === 'video') { e = el('video'); e.controls = true; e.playsInline = true; e.preload = 'metadata'; }
+  else { e = el('img'); e.loading = 'lazy'; e.alt = '첨부 사진'; e.onclick = () => lightbox(m.url); }
+  if (cls) e.className = cls; e.src = m.url; return e;
+}
+function mediaPicker(max, initial) {
+  const items = (initial || []).map(m => ({ type: m.type, url: m.url }));
+  const grid = el('div', 'pgrid'), btn = el('button', 'pill', ''), pick = el('input'), ctl = el('span');
+  pick.type = 'file'; pick.accept = cloudOn ? 'image/*,video/*' : 'image/*'; pick.multiple = max > 1; pick.hidden = true;
+  ctl.append(btn, pick);
+  const base = cloudOn ? '사진 · 동영상' : '사진';
+  const draw = () => {
+    grid.textContent = ''; grid.hidden = !items.length;
+    items.forEach((it, i) => {
+      const c = el('div', 'pitem'), m = el(it.type === 'video' ? 'video' : 'img');
+      m.src = it.preview || it.url;
+      if (it.type === 'video') { m.muted = true; m.preload = 'metadata'; } else m.alt = '선택한 사진';
+      const rm = el('button', 'x', '삭제'); rm.onclick = () => { if (it.preview) URL.revokeObjectURL(it.preview); items.splice(i, 1); draw(); };
+      c.append(m, rm); grid.append(c);
+    });
+    btn.textContent = max > 1 ? base + ' ' + items.length + '/' + max : base;
+    btn.disabled = items.length >= max;
+  };
+  btn.onclick = () => pick.click();
+  pick.onchange = () => {
+    for (const f of [...pick.files]) {
+      const isV = f.type.startsWith('video/'), isI = f.type.startsWith('image/');
+      if (!isV && !isI) { alert('사진이나 동영상만 올릴 수 있어요.'); continue; }
+      if (isV && !cloudOn) { alert('동영상은 지금 올릴 수 없어요.'); continue; }
+      if (isV && f.size > 50 * 1024 * 1024) { alert('동영상은 50MB 이하만 올릴 수 있어요.'); continue; }
+      if (isI && f.size > 15 * 1024 * 1024) { alert('사진은 15MB 이하만 올릴 수 있어요.'); continue; }
+      if (isV && items.some(x => x.type === 'video')) { alert('동영상은 1개만 올릴 수 있어요.'); continue; }
+      if (items.length >= max) { alert('최대 ' + max + '개까지 올릴 수 있어요.'); break; }
+      items.push({ type: isV ? 'video' : 'image', file: f, preview: URL.createObjectURL(f) });
+    }
+    pick.value = ''; draw();
+  };
+  draw();
+  return {
+    ctl, grid, items,
+    clear() { items.forEach(i => i.preview && URL.revokeObjectURL(i.preview)); items.length = 0; draw(); },
+    upload() { return Promise.all(items.map(it => it.file ? uploadMedia(it.file, Math.floor(650000 / max)) : { type: it.type, url: it.url })); }
+  };
+}
+
 function openEdit(ref, p) {
   const ov = el('div', 'ov sheetov'), box = el('div', 'sheet');
   const head = el('div', 'sheethead'), x = el('button', 'x', '닫기'); x.onclick = () => ov.remove();
   head.append(el('b', null, '글 수정'), x);
   const ta = el('textarea'); ta.maxLength = 300; ta.value = p.text || '';
+  const orig = postMedias(p), pk = mediaPicker(4, orig);
   const save = el('button', 'btn', '저장');
   save.onclick = async () => {
-    const v = ta.value.trim(); if (!v && !p.media) return;
-    if (v === (p.text || '')) { ov.remove(); return; }
-    save.disabled = true;
-    try { await updateDoc(ref, { text: v, edited: true }); ov.remove(); }
-    catch (e) { save.disabled = false; alert('수정하지 못했어요. 잠시 후 다시 시도해 주세요.'); }
+    const v = ta.value.trim(); if (!v && !pk.items.length) return;
+    const changed = pk.items.some(i => i.file) || pk.items.length !== orig.length || pk.items.some((it, i) => it.url !== orig[i].url);
+    if (v === (p.text || '') && !changed) { ov.remove(); return; }
+    save.disabled = true; save.textContent = '저장 중…';
+    try {
+      const med = await pk.upload(), upd = { text: v, edited: true };
+      if (changed || Array.isArray(p.medias)) upd.medias = med;
+      if (p.media && changed) upd.media = deleteField();
+      await updateDoc(ref, upd); ov.remove();
+    } catch (e) { save.disabled = false; save.textContent = '저장'; alert(e && e.code ? '수정하지 못했어요. 잠시 후 다시 시도해 주세요.' : (e && e.message) || '수정하지 못했어요.'); }
   };
-  const row = el('div', 'dots'); row.append(save);
-  box.append(head, ta, row); ov.append(box);
+  const row = el('div', 'dots'); row.append(pk.ctl, save);
+  box.append(head, ta, pk.grid, row); ov.append(box);
   ov.onclick = e => { if (e.target === ov) ov.remove(); };
   document.body.append(ov); ta.focus();
 }
 
 function openCompose(id) {
   const ov = el('div', 'ov sheetov'), box = el('div', 'sheet');
-  const head = el('div', 'sheethead'), x = el('button', 'x', '닫기'); x.setAttribute('aria-label', '닫기'); x.onclick = () => ov.remove();
+  const head = el('div', 'sheethead'), x = el('button', 'x', '닫기'); x.onclick = () => ov.remove();
   head.append(el('b', null, '글쓰기'), x);
   const ta = el('textarea'); ta.placeholder = '하고 싶은 말'; ta.maxLength = 300;
-  let file = null;
-  const prev = el('div', 'preview'); prev.hidden = true;
-  const pick = el('input'); pick.type = 'file'; pick.accept = 'image/*,video/*'; pick.hidden = true;
-  const attach = el('button', 'pill', cloudOn ? '사진 · 동영상' : '사진'); attach.onclick = () => pick.click();
-  const rowa = el('div', 'rowa'); rowa.append(attach, pick);
-  const clearFile = () => { file = null; pick.value = ''; prev.hidden = true; prev.textContent = ''; };
-  pick.onchange = () => {
-    const f = pick.files[0]; if (!f) return;
-    const isV = f.type.startsWith('video/'), isI = f.type.startsWith('image/');
-    if (!isV && !isI) { alert('사진이나 동영상만 올릴 수 있어요.'); clearFile(); return; }
-    if (isV && !cloudOn) { alert('동영상 업로드는 아직 설정되지 않았어요. 사진은 올릴 수 있어요.'); clearFile(); return; }
-    if (isV && f.size > 50 * 1024 * 1024) { alert('동영상은 50MB 이하만 올릴 수 있어요.'); clearFile(); return; }
-    if (isI && f.size > 15 * 1024 * 1024) { alert('사진은 15MB 이하만 올릴 수 있어요.'); clearFile(); return; }
-    file = f; prev.textContent = ''; prev.hidden = false;
-    const m = el(isV ? 'video' : 'img'); m.src = URL.createObjectURL(f);
-    if (isV) { m.muted = true; m.controls = true; m.playsInline = true; } else m.alt = '선택한 사진';
-    const rm = el('button', 'x', '삭제'); rm.setAttribute('aria-label', '첨부 삭제'); rm.onclick = clearFile;
-    prev.append(m, rm);
-  };
+  const pk = mediaPicker(4, []), rowa = el('div', 'rowa'); rowa.append(pk.ctl);
   const dots = el('div', 'dots');
   for (let i = 0; i < 5; i++) {
     const dd = el('button', 'dot' + (i === color ? ' on' : '')); dd.style.background = `var(--c${i})`; dd.setAttribute('aria-label', '카드 색상 ' + (i + 1));
@@ -303,15 +349,15 @@ function openCompose(id) {
   }
   const send = el('button', 'btn', '올리기');
   send.onclick = async () => {
-    const v = ta.value.trim(); if (!v && !file) return;
+    const v = ta.value.trim(); if (!v && !pk.items.length) return;
     send.disabled = true; send.textContent = '올리는 중…';
     try {
       const data = { text: v, color, uid: user.uid, name: user.displayName || '익명', photo: user.photoURL || '', likes: [], createdAt: serverTimestamp() };
-      if (file) data.media = await uploadMedia(file);
+      if (pk.items.length) data.medias = await pk.upload();
       await addDoc(collection(db, 'rooms', id, 'posts'), data); ov.remove();
     } catch (e) { send.disabled = false; send.textContent = '올리기'; alert(e && e.code ? '올리지 못했어요. 잠시 후 다시 시도해 주세요.' : (e && e.message) || '올리지 못했어요.'); }
   };
-  dots.append(send); box.append(head, ta, prev, rowa, dots); ov.append(box);
+  dots.append(send); box.append(head, ta, pk.grid, rowa, dots); ov.append(box);
   ov.onclick = e => { if (e.target === ov) ov.remove(); };
   document.body.append(ov); ta.focus();
 }
@@ -352,18 +398,13 @@ function roomView(id) {
     }
   }));
   unsubs.push(onSnapshot(query(collection(db, 'rooms', id, 'posts'), orderBy('createdAt', 'desc')), s => {
-    stopComments(); wall.textContent = '';
+    stopComments(); wall.textContent = ''; let pendingFocus = null;
     if (s.empty) { wall.style.columns = 'auto'; wall.append(el('div', 'empty', '첫 글을 남겨보세요.')); return; }
     wall.style.columns = '';
     s.docs.forEach(d => {
       const p = d.data(), n = el('div', 'note'); n.style.background = `var(--c${(p.color | 0) % 5})`;
-      const mu = p.media && p.media.url;
-      if (mu && /^(https:\/\/|data:image\/)/.test(mu)) {
-        let md;
-        if (p.media.type === 'video') { md = el('video'); md.controls = true; md.playsInline = true; md.preload = 'metadata'; }
-        else { md = el('img'); md.loading = 'lazy'; md.alt = '첨부 사진'; md.onclick = () => lightbox(mu); }
-        md.src = mu; n.append(md);
-      }
+      const ml = postMedias(p);
+      if (ml.length) { const mb = el('div', ml.length > 1 ? 'mgrid' : ''); ml.forEach(m => mb.append(mediaEl(m))); n.append(mb); }
       if (p.text) n.append(el('p', null, p.text));
       const m = el('div', 'meta');
       if (p.photo) { const i = el('img'); i.src = p.photo; i.alt = ''; i.referrerPolicy = 'no-referrer'; m.append(i); }
@@ -383,20 +424,29 @@ function roomView(id) {
       if (user && user.uid === p.uid) { const eb = el('button', 'x', '수정'); eb.onclick = () => openEdit(d.ref, p); acts.append(eb); }
       const cbox = el('div', 'cbox'), clist = el('div'); cbox.hidden = true; cbox.append(clist);
       if (user) {
+        const cp = pickers[d.id] || (pickers[d.id] = mediaPicker(1, []));
         const form = el('div', 'cform'), ci = el('input'), cs = el('button', 'btn', '등록');
         ci.placeholder = '댓글 쓰기'; ci.maxLength = 200; ci.value = drafts[d.id] || ''; ci.oninput = () => { drafts[d.id] = ci.value; };
         const send = async () => {
-          const v = ci.value.trim(); if (!v) return; cs.disabled = true;
+          if (sending.has(d.id)) return;
+          const v = ci.value.trim(); if (!v && !cp.items.length) return;
+          sending.add(d.id); cs.disabled = true;
+          drafts[d.id] = ''; ci.value = ''; focusPost = d.id; setTimeout(() => { if (focusPost === d.id) focusPost = null; }, 2500);
           try {
+            const med = cp.items.length ? await cp.upload() : [];
+            const data = { text: v, uid: user.uid, name: user.displayName || '익명', photo: user.photoURL || '', createdAt: serverTimestamp() };
+            if (med.length) data.media = med[0];
             const b = writeBatch(db);
-            b.set(doc(collection(d.ref, 'comments')), { text: v, uid: user.uid, name: user.displayName || '익명', photo: user.photoURL || '', createdAt: serverTimestamp() });
+            b.set(doc(collection(d.ref, 'comments')), data);
             b.update(d.ref, { cc: increment(1) });
-            await b.commit(); ci.value = ''; drafts[d.id] = '';
-          } catch (e) { alert('댓글을 달지 못했어요.'); }
-          cs.disabled = false;
+            await b.commit(); cp.clear();
+          } catch (e) { drafts[d.id] = v; ci.value = v; alert(e && e.code ? '댓글을 달지 못했어요.' : (e && e.message) || '댓글을 달지 못했어요.'); }
+          sending.delete(d.id); cs.disabled = false;
         };
-        cs.onclick = send; ci.onkeydown = e => { if (e.key === 'Enter') send(); };
-        form.append(ci, cs); cbox.append(form);
+        cs.onclick = send;
+        ci.onkeydown = e => { if (e.key === 'Enter' && !e.isComposing && e.keyCode !== 229) send(); };
+        form.append(ci, cp.ctl, cs); cbox.append(form, cp.grid);
+        if (focusPost === d.id && openSet.has(d.id)) pendingFocus = ci;
       } else {
         const l = el('button', 'x', '로그인하면 댓글을 쓸 수 있어요'); l.onclick = login; cbox.append(l);
       }
@@ -418,6 +468,7 @@ function roomView(id) {
               };
               row.append(del);
             }
+            if (cd.media && validUrl(cd.media.url)) { const mw = el('div'); mw.append(mediaEl(cd.media, 'cmedia')); row.append(mw); }
             clist.append(row);
           });
         }, () => { clist.textContent = '댓글을 불러오지 못했어요.'; });
@@ -428,6 +479,7 @@ function roomView(id) {
       if (openSet.has(d.id)) openC();
       n.append(acts, cbox); wall.append(n);
     });
+    if (pendingFocus) pendingFocus.focus({ preventScroll: true });
   }, () => { wall.textContent = '의견을 불러오지 못했어요.'; }));
 }
 </script>
